@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    </head>
+<body>
+    <h2>Voice Recorder</h2>
+    <div class="scroll" style="overflow-x: scroll; width: 100%; height: 200px;">
+        <div class="scroll-content">
+            <div class="waveform-wrapper">
+                <div class="waveform-scroll-container">
+                    <canvas id="waveform"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+        <button id="start">Start Recording</button>
+        <button id="stop" disabled>Stop Recording</button>
+        <audio id="audioPlayer" controls style="display: none;"></audio>
+        <a id="download" style="display: none;">Download</a>
+        <button id="rerecord" style="display: none;">Re-record</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

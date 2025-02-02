@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+    "name": "Voice Recorder",
+    "version": "1.0",
+    "description": "A simple voice recorder with waveform visualization.",
+    "permissions": ["tabs", "activeTab", "microphone"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_title": "Open Voice Recorder"
+    }
+  }
+  
