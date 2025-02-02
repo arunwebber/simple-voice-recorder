@@ -34,7 +34,7 @@ async function toggleRecording() {
             mediaRecorder.pause();
             if (audioElement) audioElement.pause();
             isPaused = true;
-            document.getElementById("start").innerHTML = "&#9654;"; // Or "&#9658;" (another play symbol)
+            document.getElementById("start").innerHTML = "&#x1F3A4;"; // Mic symbol)
             cancelAnimationFrame(animationId);
         } else {
             mediaRecorder.resume();
@@ -94,7 +94,7 @@ async function startNewRecording() {
         document.getElementById("rerecord").style.display = "block";
         document.getElementById("start").disabled = false;
         document.getElementById("stop").disabled = true;
-        document.getElementById("start").innerHTML = "&#9654;"; // Or "&#9658;" (another play symbol)
+        document.getElementById("start").innerHTML = "&#x1F3A4;"; // Mic symbol)
 
         const arrayBuffer = await audioBlob.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
