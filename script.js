@@ -11,15 +11,16 @@ let isRecording = false;
 let isPaused = false;
 let fullWaveformData = [];
 let recordingStartTime;
-let canvasWidth = 600;
+let elapsedRecordingTime = 0; // In seconds
 let stream;
 let source;
 let animationId;
+let recordingTimeInterval;
 
 document.addEventListener("DOMContentLoaded", () => {
     canvas = document.getElementById("waveform");
     canvasCtx = canvas.getContext("2d");
-    canvas.width = canvasWidth;
+    canvas.width = 800; // Initial width of canvas
     canvas.height = 150;
 
     document.getElementById("start").addEventListener("click", toggleRecording);
@@ -34,18 +35,20 @@ async function toggleRecording() {
             mediaRecorder.pause();
             if (audioElement) audioElement.pause();
             isPaused = true;
-            document.getElementById("start").innerHTML = "&#x1F3A4;"; // Mic symbol)
+            document.getElementById("start").innerHTML = "&#x1F3A4;"; // Mic symbol
             cancelAnimationFrame(animationId);
+            clearInterval(recordingTimeInterval); // Stop time update
         } else {
             mediaRecorder.resume();
             if (audioElement) audioElement.play();
             isPaused = false;
-            document.getElementById("start").innerHTML = "&#9208;"; // Pause symbol (HTML entity)
+            document.getElementById("start").innerHTML = "&#9208;"; // Pause symbol
             drawRealTimeWaveform();
+            startRecordingTime(); // Resume time tracking
         }
     } else {
         await startNewRecording();
-        document.getElementById("start").innerHTML = "&#9208;"; // Pause symbol (HTML entity)
+        document.getElementById("start").innerHTML = "&#9208;"; // Pause symbol
         document.getElementById("stop").disabled = false;
     }
 }
@@ -59,6 +62,7 @@ async function startNewRecording() {
     isPaused = false;
 
     recordingStartTime = Date.now();
+    elapsedRecordingTime = 0;
 
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
@@ -70,6 +74,7 @@ async function startNewRecording() {
     dataArray = new Uint8Array(bufferLength);
 
     drawRealTimeWaveform();
+    startRecordingTime(); // Start the recording timer
 
     mediaRecorder.ondataavailable = event => {
         if (!isPaused) {
@@ -94,14 +99,23 @@ async function startNewRecording() {
         document.getElementById("rerecord").style.display = "block";
         document.getElementById("start").disabled = false;
         document.getElementById("stop").disabled = true;
-        document.getElementById("start").innerHTML = "&#x1F3A4;"; // Mic symbol)
+        document.getElementById("start").innerHTML = "&#x1F3A4;"; // Mic symbol
 
         const arrayBuffer = await audioBlob.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         drawStaticWaveform(audioBuffer);
+
+        clearInterval(recordingTimeInterval); // Stop the time update
     };
 
     mediaRecorder.start();
+}
+
+function startRecordingTime() {
+    recordingTimeInterval = setInterval(() => {
+        elapsedRecordingTime = (Date.now() - recordingStartTime) / 1000;
+        document.getElementById("recording-length").textContent = `Recording length: ${elapsedRecordingTime.toFixed(3)} seconds`;  // Showing milliseconds
+    }, 100); // Update every 100ms for more accurate time display
 }
 
 function stopRecording() {
@@ -118,10 +132,13 @@ function drawRealTimeWaveform() {
     analyser.getByteTimeDomainData(dataArray);
     fullWaveformData.push([...dataArray]);
 
-    let newCanvasWidth = Math.max(canvasWidth, fullWaveformData.length * 2);
-    let maxWidth = 5000;
-    newCanvasWidth = Math.min(newCanvasWidth, maxWidth);
+    // Remove the oldest data if it exceeds the max length
+    if (fullWaveformData.length > 5000) {
+        fullWaveformData.shift(); // Remove the first (oldest) data point
+    }
 
+    // Adjust canvas width dynamically based on the waveform data length
+    let newCanvasWidth = fullWaveformData.length * 2; // Adjust the width based on data length
     canvas.width = newCanvasWidth;
 
     let waveformContainer = document.querySelector('.waveform-scroll-container');
@@ -207,7 +224,7 @@ function resetRecorder() {
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById("start").disabled = false;
     document.getElementById("stop").disabled = true;
-    document.getElementById("start").innerHTML = "&#x1F3A4;";
+    document.getElementById("start").innerHTML = "&#x1F3A4;"; // Mic symbol
     if (source) {
         source.disconnect(analyser);
     }
@@ -217,4 +234,6 @@ function resetRecorder() {
     if (animationId) {
         cancelAnimationFrame(animationId);
     }
+    clearInterval(recordingTimeInterval); // Clear the time update when resetting
+    document.getElementById("recording-length").textContent = "Recording length: 0.000 seconds"; // Reset time display
 }

@@ -1,25 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    </head>
+    <meta charset="UTF-8">
+    <title>Voice Recorder</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
 <body>
     <h2>Voice Recorder</h2>
-    <div class="scroll" style="overflow-x: scroll; width: 100%; height: 200px;">
-        <div class="scroll-content">
-            <div class="waveform-wrapper">
-                <div class="waveform-scroll-container">
-                    <canvas id="waveform"></canvas>
-                </div>
-            </div>
+    
+    <!-- Display for total length -->
+    <div id="recording-length" style="font-size: 16px; color: #333;">Recording length: 0.00 seconds</div>
+    
+    <div class="waveform-wrapper">
+        <div class="waveform-scroll-container">
+            <canvas id="waveform"></canvas>
         </div>
     </div>
-        <button id="start" title="Start Recording">&#x1F3A4;</button>
-        <button id="stop" disabled title="Stop Recording">&#9209;</button>
-        <button id="rerecord" style="display: none;"> &#8635;</button>
-        <audio id="audioPlayer" controls style="display: none;"></audio>
-        <a id="download" style="display: none;">Download</a>
+    <button id="start" title="Start Recording">&#x1F3A4;</button>
+    <button id="stop" disabled title="Stop Recording">&#9209;</button>
+    <button id="rerecord" style="display: none;">&#8635;</button>
+    <audio id="audioPlayer" controls style="display: none;"></audio>
+    
+    <!-- Download button with floppy disk symbol -->
+    <a id="download" href="#" style="display: none; text-decoration: none; font-size: 20px;">
+        &#x1F4BE; Download
+    </a>
 
+    <!-- Footer -->
+    <div class="container">
+        <div id="footer">
+            For support and code base: <a target="_blank" href="https://arunsyoga.in/extentions.html">HahsPalLabs</a>.
+        </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
