@@ -2,13 +2,24 @@
     "manifest_version": 3,
     "name": "Voice Recorder",
     "version": "1.0",
-    "description": "A simple voice recorder with waveform visualization.",
+    "description": "A simple voice recorder that lives in the browser and downloads",
     "permissions": ["tabs", "activeTab", "microphone"],
     "background": {
       "service_worker": "background.js"
     },
     "action": {
-      "default_title": "Open Voice Recorder"
-    }
+      "default_title": "Open Voice Recorder",
+      "default_icon": {
+        "16": "images/icon_16.png",
+        "48": "images/icon_48.png",
+        "128": "images/icon_128.png"
+     }
+    },
+    "icons": {
+      "16": "images/icon_16.png",
+      "48": "images/icon_48.png",
+      "128": "images/icon_128.png"
+    },
+    "homepage_url": "https://www.arunsyoga.in", 
+    "author": "HashPalLabs"
   }
-  
