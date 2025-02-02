@@ -34,18 +34,18 @@ async function toggleRecording() {
             mediaRecorder.pause();
             if (audioElement) audioElement.pause();
             isPaused = true;
-            document.getElementById("start").textContent = "Resume Recording";
+            document.getElementById("start").innerHTML = "&#9654;"; // Or "&#9658;" (another play symbol)
             cancelAnimationFrame(animationId);
         } else {
             mediaRecorder.resume();
             if (audioElement) audioElement.play();
             isPaused = false;
-            document.getElementById("start").textContent = "Pause Recording";
+            document.getElementById("start").innerHTML = "&#9208;"; // Pause symbol (HTML entity)
             drawRealTimeWaveform();
         }
     } else {
         await startNewRecording();
-        document.getElementById("start").textContent = "Pause Recording";
+        document.getElementById("start").innerHTML = "&#9208;"; // Pause symbol (HTML entity)
         document.getElementById("stop").disabled = false;
     }
 }
@@ -94,7 +94,7 @@ async function startNewRecording() {
         document.getElementById("rerecord").style.display = "block";
         document.getElementById("start").disabled = false;
         document.getElementById("stop").disabled = true;
-        document.getElementById("start").textContent = "Start Recording";
+        document.getElementById("start").innerHTML = "&#9654;"; // Or "&#9658;" (another play symbol)
 
         const arrayBuffer = await audioBlob.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
