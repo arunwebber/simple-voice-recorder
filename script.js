@@ -207,7 +207,7 @@ function resetRecorder() {
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById("start").disabled = false;
     document.getElementById("stop").disabled = true;
-    document.getElementById("start").textContent = "Start Recording";
+    document.getElementById("start").innerHTML = "&#x1F3A4;";
     if (source) {
         source.disconnect(analyser);
     }
