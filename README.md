@@ -1,7 +1,6 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/arunwebber/simple-voice-recorder/refs/heads/master/images/icon_128.png" alt="Logo">
 </p>
-# Voice Recorder Application
 
 ## Description
 
