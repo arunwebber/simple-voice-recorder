@@ -17,19 +17,14 @@ This web-based **Voice Recorder** application allows users to record their audio
   
 ## Installation
 
-1. **Clone the Repository**:
-   Clone this repository to your local machine using Git:
-   
-   ```bash
-   git clone https://github.com/your-username/voice-recorder-app.git
-   ```
-
-2. **Open in Browser**:
-   Navigate to the project folder and open `index.html` in your preferred browser.
-
-   Alternatively, you can host the app on a local or remote server for broader access.
-
-3. **Dependencies**:
+1.  **Download the Extension:**  
+   Download the Extension:Clone this repository or download the ZIP.git clone git clone https://github.com/Krishnapriya462/simple-voice-recorder.git
+2. cd simple-voice-recorder
+3. Load as an Unpacked Extension:
+4. Open Chrome and go to chrome://extensions/
+5. Enable Developer mode (top right corner)
+6. Click "Load unpacked" and select the folder
+4. **Dependencies**:
    This application uses:
    - **HTML5 Audio API**: For capturing and processing audio.
    - **Canvas API**: For displaying the waveform.
