@@ -18,7 +18,7 @@ This web-based **Voice Recorder** application allows users to record their audio
 ## Installation
 
 1.  **Download the Extension:**  
-   Clone this repository o
+   Clone this repository 
 2. cd simple-voice-recorder
 3. Load as an Unpacked Extension:
 4. Open Chrome and go to chrome://extensions/
