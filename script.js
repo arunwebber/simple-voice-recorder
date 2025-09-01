@@ -117,12 +117,13 @@ class RecordingLibrary {
             item.className = 'recording-item';
             item.innerHTML = `
                 <div class="name">
-                  <span class="title">${rec.name}</span>
-                  <span class="duration">(${rec.duration})</span>
+                <span class="title">${rec.name}</span>
+                <span class="duration">(${rec.duration})</span>
                 </div>
                 <div class="controls">
                     <button class="play-btn" data-index="${index}">&#9658;</button>
                     <button class="download-btn" data-index="${index}">&#x1F4BE;</button>
+                    <button class="delete-btn" data-index="${index}">&#x1F5D1;</button>
                 </div>
             `;
             this.libraryList.appendChild(item);
@@ -133,6 +134,10 @@ class RecordingLibrary {
         });
         document.querySelectorAll('.download-btn').forEach(button => {
             button.addEventListener('click', (e) => this.downloadRecording(e.target.dataset.index));
+        });
+        // Add event listener for the new delete button
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', (e) => this.deleteRecording(e.target.dataset.index));
         });
     }
 
@@ -160,6 +165,15 @@ class RecordingLibrary {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    deleteRecording(index) {
+        // Remove the recording at the specified index
+        this.recordings.splice(index, 1);
+        // Save the updated list to local storage
+        this.saveRecordings();
+        // Re-render the list to update the display
+        this.renderRecordings();
     }
 }
 
