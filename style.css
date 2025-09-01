@@ -177,11 +177,11 @@ body.dark-mode .rightPanel-tabs {
 }
 
 .rightTab:hover:not(.active) {
-  background-color: #f0f0f0;
+  background-color: var(--hover-light);
 }
 
 .rightTab.active {
-  background-color: #f0f0f0;
+  background-color: var(--hover-light);
   font-weight: 600;
   border-left: 3px solid var(--primary-color);
   padding-left: 12px;
@@ -193,7 +193,7 @@ body.dark-mode .rightTab {
 
 body.dark-mode .rightTab:hover:not(.active),
 body.dark-mode .rightTab.active {
-  background-color: #3e3e40;
+  background-color: var(--hover-dark);
 }
 
 body.dark-mode .rightTab.active {
@@ -330,7 +330,7 @@ body.dark-mode #buttons button:not(:disabled) {
 }
 
 body.dark-mode #buttons button:hover:not(:disabled) {
-  background-color: #3e3e40;
+  background-color: var(--hover-dark);
 }
 
 /* Waveform */
@@ -364,14 +364,14 @@ body.dark-mode .waveform-wrapper {
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  background-color: #f9f9fb;
+  background-color: var(--bg-light);
   border: 1px solid var(--border-light);
   border-radius: 6px;
   transition: background-color 0.3s, border-color 0.3s;
 }
 
 .recording-item:hover {
-  background-color: #f0f0f0;
+  background-color: var(--hover-light);
 }
 
 body.dark-mode .recording-item {
@@ -380,7 +380,7 @@ body.dark-mode .recording-item {
 }
 
 body.dark-mode .recording-item:hover {
-  background-color: #3e3e40;
+  background-color: var(--hover-dark);
 }
 
 .recording-item .name {
@@ -525,9 +525,9 @@ button,
   transition: all 0.2s ease;
 }
 
-/* Inside the .recording-item .controls section */
+/* Delete button */
 .recording-item button.delete-btn {
-  color: #f44336; /* A red color for deletion */
+  color: #f44336;
 }
 
 .recording-item button.delete-btn:hover {
@@ -536,10 +536,102 @@ button,
 }
 
 body.dark-mode .recording-item button.delete-btn {
-  color: #ff6b6b; /* Lighter red for dark mode */
+  color: #ff6b6b;
 }
 
 body.dark-mode .recording-item button.delete-btn:hover {
   color: #ff3838;
   background-color: rgba(255, 107, 107, 0.1);
+}
+
+/* Tab content visibility */
+.rightTabContent {
+  display: none;
+  width: 100%;
+}
+
+.rightTabContent.active {
+  display: block;
+}
+
+.recordings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Empty state styling */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.empty-state p {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.empty-state small {
+  font-size: 14px;
+  color: #999;
+}
+
+body.dark-mode .empty-state {
+  color: #999;
+}
+
+body.dark-mode .empty-state small {
+  color: #666;
+}
+
+/* Date headers in recordings list */
+.recordings-list h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 15px 0 10px 0;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+body.dark-mode .recordings-list h3 {
+  color: #999;
+}
+
+/* Improve button styling */
+.recording-item button.improve-btn {
+  color: #ffa500;
+}
+
+.recording-item button.improve-btn:hover {
+  color: #ff8c00;
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+body.dark-mode .recording-item button.improve-btn {
+  color: #ffb347;
+}
+
+body.dark-mode .recording-item button.improve-btn:hover {
+  color: #ffa500;
+  background-color: rgba(255, 179, 71, 0.1);
+}
+
+/* Rename input styling */
+.rename-input {
+  width: 100%;
+  padding: 2px 4px;
+  font-size: 14px;
+  border: 1px solid var(--primary-color);
+  border-radius: 3px;
+  background-color: var(--element-bg-light);
+  color: var(--text-light);
+}
+
+body.dark-mode .rename-input {
+  background-color: var(--element-bg-dark);
+  color: var(--text-dark);
+  border-color: var(--primary-color);
 }

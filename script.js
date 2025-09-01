@@ -75,53 +75,97 @@ class DarkModeManager {
 
 class RecordingLibrary {
     constructor() {
-        this.libraryList = document.getElementById('libraryList');
-        this.recordings = this.loadRecordings();
+        this.rawRecordingsList = document.getElementById('rawRecordingsList');
+        this.aiImprovedList = document.getElementById('aiImprovedList');
+        this.recordings = {
+            raw: this.loadRecordings('rawRecordings'),
+            improved: this.loadRecordings('aiImprovedRecordings')
+        };
+        this.currentTab = 'raw-recordings';
+        this.setupTabSwitching();
         this.renderRecordings();
     }
 
-    loadRecordings() {
+    setupTabSwitching() {
+        const tabButtons = document.querySelectorAll('.rightTab');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Update active tab button
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update active tab content
+                const tabContents = document.querySelectorAll('.rightTabContent');
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                const tabId = button.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+                
+                this.currentTab = tabId;
+                this.renderRecordings();
+            });
+        });
+    }
+
+    loadRecordings(storageKey) {
         try {
-            const savedRecordings = StorageManager.getFromLocalStorage('recordings');
+            const savedRecordings = StorageManager.getFromLocalStorage(storageKey);
             return savedRecordings ? JSON.parse(savedRecordings) : [];
         } catch (e) {
-            console.error("Failed to parse recordings from localStorage:", e);
+            console.error(`Failed to parse ${storageKey} from localStorage:`, e);
             return [];
         }
     }
 
-    saveRecordings() {
-        StorageManager.saveToLocalStorage('recordings', JSON.stringify(this.recordings));
+    saveRecordings(type = 'raw') {
+        const storageKey = type === 'raw' ? 'rawRecordings' : 'aiImprovedRecordings';
+        StorageManager.saveToLocalStorage(storageKey, JSON.stringify(this.recordings[type]));
     }
 
-    addRecording(blob, duration) {
+    addRecording(blob, duration, type = 'raw') {
         const reader = new FileReader();
         reader.onload = () => {
             const newRecording = {
                 id: `rec-${Date.now()}`,
-                name: `Recording ${this.recordings.length + 1}`,
+                name: `Recording ${this.recordings[type].length + 1}`,
                 dataUrl: reader.result,
                 duration: this.formatTime(duration),
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                type: type
             };
-            this.recordings.unshift(newRecording); // Add to the beginning of the list
-            this.saveRecordings();
+            this.recordings[type].unshift(newRecording);
+            this.saveRecordings(type);
             this.renderRecordings();
         };
         reader.readAsDataURL(blob);
     }
 
-    deleteRecording(id) {
-        this.recordings = this.recordings.filter(rec => rec.id !== id);
-        this.saveRecordings();
+    deleteRecording(id, type) {
+        this.recordings[type] = this.recordings[type].filter(rec => rec.id !== id);
+        this.saveRecordings(type);
         this.renderRecordings();
     }
 
     renderRecordings() {
-        this.libraryList.innerHTML = '';
-        
+        const isRawTab = this.currentTab === 'raw-recordings';
+        const type = isRawTab ? 'raw' : 'improved';
+        const targetList = isRawTab ? this.rawRecordingsList : this.aiImprovedList;
+        const recordings = this.recordings[type];
+
+        targetList.innerHTML = '';
+
+        if (recordings.length === 0 && type === 'improved') {
+            targetList.innerHTML = `
+                <div class="empty-state">
+                    <p>No AI improved recordings yet</p>
+                    <small>Raw recordings can be improved using AI</small>
+                </div>
+            `;
+            return;
+        }
+
         // Group recordings by date
-        const recordingsByDate = this.recordings.reduce((groups, rec) => {
+        const recordingsByDate = recordings.reduce((groups, rec) => {
             const date = new Date(rec.timestamp).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -138,24 +182,26 @@ class RecordingLibrary {
         for (const date in recordingsByDate) {
             const dateHeader = document.createElement('h3');
             dateHeader.textContent = date;
-            this.libraryList.appendChild(dateHeader);
+            targetList.appendChild(dateHeader);
 
             recordingsByDate[date].forEach(rec => {
                 const item = document.createElement('div');
                 item.className = 'recording-item';
                 item.dataset.id = rec.id;
+                item.dataset.type = type;
                 item.innerHTML = `
                     <div class="name">
                       <span class="title">${rec.name}</span>
                       <span class="duration">(${rec.duration})</span>
                     </div>
                     <div class="controls">
-                        <button class="play-btn" data-id="${rec.id}">&#9658;</button>
-                        <button class="download-btn" data-id="${rec.id}">&#x1F4BE;</button>
-                        <button class="delete-btn" data-id="${rec.id}">&#x1F5D1;</button>
+                        <button class="play-btn" data-id="${rec.id}" data-type="${type}">&#9658;</button>
+                        <button class="download-btn" data-id="${rec.id}" data-type="${type}">&#x1F4BE;</button>
+                        ${type === 'raw' ? `<button class="improve-btn" data-id="${rec.id}" data-type="${type}" title="Improve with AI">✨</button>` : ''}
+                        <button class="delete-btn" data-id="${rec.id}" data-type="${type}">&#x1F5D1;</button>
                     </div>
                 `;
-                this.libraryList.appendChild(item);
+                targetList.appendChild(item);
             });
         }
         
@@ -163,30 +209,62 @@ class RecordingLibrary {
     }
 
     setupEventListeners() {
+        // Play buttons
         document.querySelectorAll('.play-btn').forEach(button => {
-            button.addEventListener('click', (e) => this.playRecording(e.target.dataset.id));
+            button.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                const type = e.target.dataset.type;
+                this.playRecording(id, type);
+            });
         });
+
+        // Download buttons
         document.querySelectorAll('.download-btn').forEach(button => {
-            button.addEventListener('click', (e) => this.downloadRecording(e.target.dataset.id));
+            button.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                const type = e.target.dataset.type;
+                this.downloadRecording(id, type);
+            });
         });
+
+        // Delete buttons
         document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', (e) => this.deleteRecording(e.target.dataset.id));
+            button.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                const type = e.target.dataset.type;
+                this.deleteRecording(id, type);
+            });
         });
+
+        // Improve buttons (only on raw recordings)
+        document.querySelectorAll('.improve-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                const type = e.target.dataset.type;
+                this.improveRecording(id, type);
+            });
+        });
+
+        // Double-click to rename
         document.querySelectorAll('.recording-item .title').forEach(titleSpan => {
-            titleSpan.addEventListener('dblclick', (e) => this.startRename(e.target));
+            titleSpan.addEventListener('dblclick', (e) => {
+                const recordingItem = e.target.closest('.recording-item');
+                const type = recordingItem.dataset.type;
+                this.startRename(e.target, type);
+            });
         });
     }
 
-    playRecording(id) {
-        const recording = this.recordings.find(rec => rec.id === id);
+    playRecording(id, type) {
+        const recording = this.recordings[type].find(rec => rec.id === id);
         if (recording) {
             const audio = new Audio(recording.dataUrl);
             audio.play();
         }
     }
 
-    downloadRecording(id) {
-        const recording = this.recordings.find(rec => rec.id === id);
+    downloadRecording(id, type) {
+        const recording = this.recordings[type].find(rec => rec.id === id);
         if (recording) {
             const link = document.createElement('a');
             link.href = recording.dataUrl;
@@ -197,9 +275,29 @@ class RecordingLibrary {
         }
     }
 
-    startRename(titleElement) {
+    improveRecording(id, type) {
+        const recording = this.recordings[type].find(rec => rec.id === id);
+        if (recording) {
+            // For now, just show an alert. In the future, this will process the audio with AI
+            alert(`AI improvement feature coming soon for "${recording.name}"!`);
+            
+            // Example of how you might copy to improved recordings later:
+            // const improvedRecording = {
+            //     ...recording,
+            //     id: `imp-${Date.now()}`,
+            //     name: `${recording.name} (AI Enhanced)`,
+            //     originalId: recording.id,
+            //     improvedAt: Date.now()
+            // };
+            // this.recordings.improved.unshift(improvedRecording);
+            // this.saveRecordings('improved');
+            // this.renderRecordings();
+        }
+    }
+
+    startRename(titleElement, type) {
         const id = titleElement.closest('.recording-item').dataset.id;
-        const recording = this.recordings.find(rec => rec.id === id);
+        const recording = this.recordings[type].find(rec => rec.id === id);
         const currentName = recording.name;
         
         const input = document.createElement('input');
@@ -217,9 +315,9 @@ class RecordingLibrary {
             const newName = input.value.trim();
             if (newName && newName !== currentName) {
                 recording.name = newName;
-                this.saveRecordings();
+                this.saveRecordings(type);
             }
-            this.renderRecordings(); // Re-render to show new name or revert
+            this.renderRecordings();
         };
     
         input.addEventListener('blur', finishRename);

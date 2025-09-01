@@ -39,12 +39,21 @@
     
     <div id="rightPanel">
       <div class="rightPanel-tabs">
-        <button class="rightTab active" data-tab="library">Library</button>
+        <button class="rightTab active" data-tab="raw-recordings">Raw Recordings</button>
+        <button class="rightTab" data-tab="ai-improved">AI Improved</button>
       </div>
       <div class="rightPanel-content">
-        <div class="rightTabContent" id="library">
-            <div id="libraryList">
-              </div>
+        <div class="rightTabContent active" id="raw-recordings">
+          <div id="rawRecordingsList" class="recordings-list">
+          </div>
+        </div>
+        <div class="rightTabContent" id="ai-improved">
+          <div id="aiImprovedList" class="recordings-list">
+            <div class="empty-state">
+              <p>No AI improved recordings yet</p>
+              <small>Raw recordings can be improved using AI</small>
+            </div>
+          </div>
         </div>
       </div>
       <div id="buttonWrapper">
@@ -54,10 +63,13 @@
     </div>
   </div>
 
-  <div id="footer">
-    For support and code base:<a target="_blank" href="https://hashpallabs.com/">HashPalLabs</a>.
-  </div>
+
   
   <script src="script.js"></script>
 </body>
 </html>
+
+
+  <div id="footer">
+    For support and code base:<a target="_blank" href="https://hashpallabs.com/">HashPalLabs</a>.
+  </div>
