@@ -101,7 +101,8 @@ class RecordingLibrary {
                 id: `rec-${Date.now()}`,
                 name: `Recording ${this.recordings.length + 1}`,
                 dataUrl: reader.result,
-                duration: this.formatTime(duration)
+                duration: this.formatTime(duration),
+                timestamp: Date.now()
             };
             this.recordings.unshift(newRecording); // Add to the beginning of the list
             this.saveRecordings();
@@ -110,47 +111,82 @@ class RecordingLibrary {
         reader.readAsDataURL(blob);
     }
 
+    deleteRecording(id) {
+        this.recordings = this.recordings.filter(rec => rec.id !== id);
+        this.saveRecordings();
+        this.renderRecordings();
+    }
+
     renderRecordings() {
         this.libraryList.innerHTML = '';
-        this.recordings.forEach((rec, index) => {
-            const item = document.createElement('div');
-            item.className = 'recording-item';
-            item.innerHTML = `
-                <div class="name">
-                <span class="title">${rec.name}</span>
-                <span class="duration">(${rec.duration})</span>
-                </div>
-                <div class="controls">
-                    <button class="play-btn" data-index="${index}">&#9658;</button>
-                    <button class="download-btn" data-index="${index}">&#x1F4BE;</button>
-                    <button class="delete-btn" data-index="${index}">&#x1F5D1;</button>
-                </div>
-            `;
-            this.libraryList.appendChild(item);
-        });
+        
+        // Group recordings by date
+        const recordingsByDate = this.recordings.reduce((groups, rec) => {
+            const date = new Date(rec.timestamp).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            if (!groups[date]) {
+                groups[date] = [];
+            }
+            groups[date].push(rec);
+            return groups;
+        }, {});
 
+        // Render each date group
+        for (const date in recordingsByDate) {
+            const dateHeader = document.createElement('h3');
+            dateHeader.textContent = date;
+            this.libraryList.appendChild(dateHeader);
+
+            recordingsByDate[date].forEach(rec => {
+                const item = document.createElement('div');
+                item.className = 'recording-item';
+                item.dataset.id = rec.id;
+                item.innerHTML = `
+                    <div class="name">
+                      <span class="title">${rec.name}</span>
+                      <span class="duration">(${rec.duration})</span>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn" data-id="${rec.id}">&#9658;</button>
+                        <button class="download-btn" data-id="${rec.id}">&#x1F4BE;</button>
+                        <button class="delete-btn" data-id="${rec.id}">&#x1F5D1;</button>
+                    </div>
+                `;
+                this.libraryList.appendChild(item);
+            });
+        }
+        
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
         document.querySelectorAll('.play-btn').forEach(button => {
-            button.addEventListener('click', (e) => this.playRecording(e.target.dataset.index));
+            button.addEventListener('click', (e) => this.playRecording(e.target.dataset.id));
         });
         document.querySelectorAll('.download-btn').forEach(button => {
-            button.addEventListener('click', (e) => this.downloadRecording(e.target.dataset.index));
+            button.addEventListener('click', (e) => this.downloadRecording(e.target.dataset.id));
         });
-        // Add event listener for the new delete button
         document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', (e) => this.deleteRecording(e.target.dataset.index));
+            button.addEventListener('click', (e) => this.deleteRecording(e.target.dataset.id));
+        });
+        document.querySelectorAll('.recording-item .title').forEach(titleSpan => {
+            titleSpan.addEventListener('dblclick', (e) => this.startRename(e.target));
         });
     }
 
-    playRecording(index) {
-        const recording = this.recordings[index];
+    playRecording(id) {
+        const recording = this.recordings.find(rec => rec.id === id);
         if (recording) {
             const audio = new Audio(recording.dataUrl);
             audio.play();
         }
     }
 
-    downloadRecording(index) {
-        const recording = this.recordings[index];
+    downloadRecording(id) {
+        const recording = this.recordings.find(rec => rec.id === id);
         if (recording) {
             const link = document.createElement('a');
             link.href = recording.dataUrl;
@@ -160,20 +196,44 @@ class RecordingLibrary {
             document.body.removeChild(link);
         }
     }
+
+    startRename(titleElement) {
+        const id = titleElement.closest('.recording-item').dataset.id;
+        const recording = this.recordings.find(rec => rec.id === id);
+        const currentName = recording.name;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'rename-input';
+        
+        titleElement.style.display = 'none';
+        titleElement.parentNode.insertBefore(input, titleElement);
+    
+        input.focus();
+        input.select();
+    
+        const finishRename = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                recording.name = newName;
+                this.saveRecordings();
+            }
+            this.renderRecordings(); // Re-render to show new name or revert
+        };
+    
+        input.addEventListener('blur', finishRename);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                finishRename();
+            }
+        });
+    }
     
     formatTime(seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    }
-
-    deleteRecording(index) {
-        // Remove the recording at the specified index
-        this.recordings.splice(index, 1);
-        // Save the updated list to local storage
-        this.saveRecordings();
-        // Re-render the list to update the display
-        this.renderRecordings();
     }
 }
 
