@@ -2,37 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voice Recorder</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-    <h2>Voice Recorder</h2>
+  <div id="header">
+    <div class="dark-mode-toggle">
+      <label class="switch">
+        <input type="checkbox" id="darkModeToggle">
+        <span class="slider round"></span>
+      </label>
+    </div>
     
-    <!-- Display for total length -->
-    <div id="recording-length" style="font-size: 16px; color: #333;">Recording length: 0.00 seconds</div>
-    
-    <div class="waveform-wrapper">
-        <div class="waveform-scroll-container">
+    <div id="titleAndDisclaimer">
+      <h1>Voice Recorder</h1>
+    </div>
+  </div>
+
+  <div id="appLayout">
+    <div id="container">
+      <div id="recording-controls">
+        <div id="recording-length">Recording length: 0.00 seconds</div>
+        <div class="waveform-wrapper">
+          <div class="waveform-scroll-container">
             <canvas id="waveform"></canvas>
+          </div>
         </div>
+        <div id="buttons">
+          <button id="start" title="Start Recording">&#x1F3A4;</button>
+          <button id="stop" disabled title="Stop Recording">&#9209;</button>
+          <button id="rerecord" style="display: none;">&#8635;</button>
+        </div>
+      </div>
     </div>
-    <button id="start" title="Start Recording">&#x1F3A4;</button>
-    <button id="stop" disabled title="Stop Recording">&#9209;</button>
-    <button id="rerecord" style="display: none;">&#8635;</button>
-    <audio id="audioPlayer" controls style="display: none;"></audio>
     
-    <!-- Download button with floppy disk symbol -->
-    <a id="download" href="#" style="display: none; text-decoration: none; font-size: 20px;">
-        &#x1F4BE; Download
-    </a>
-
-    <!-- Footer -->
-    <div class="container">
-        <div id="footer">
-            For support and code base: <a target="_blank" href="https://hashpallabs.com/">HahsPalLabs</a>.
+    <div id="rightPanel">
+      <div class="rightPanel-tabs">
+        <button class="rightTab active" data-tab="library">Library</button>
+      </div>
+      <div class="rightPanel-content">
+        <div class="rightTabContent" id="library">
+            <div id="libraryList">
+              </div>
         </div>
+      </div>
+      <div id="buttonWrapper">
+        <button id="aiWriteButton">Write With AI</button>
+        <button id="settingsButton">⚙️</button>
+      </div>
     </div>
+  </div>
 
-    <script src="script.js"></script>
+  <div id="footer">
+    For support and code base:<a target="_blank" href="https://hashpallabs.com/">HashPalLabs</a>.
+  </div>
+  
+  <script src="script.js"></script>
 </body>
 </html>
