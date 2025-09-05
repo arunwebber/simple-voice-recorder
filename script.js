@@ -81,30 +81,9 @@ class RecordingLibrary {
             raw: this.loadRecordings('rawRecordings'),
             improved: this.loadRecordings('aiImprovedRecordings')
         };
-        this.currentTab = 'raw-recordings';
-        this.setupTabSwitching();
-        this.renderRecordings();
-    }
-
-    setupTabSwitching() {
-        const tabButtons = document.querySelectorAll('.rightTab');
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Update active tab button
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                
-                // Update active tab content
-                const tabContents = document.querySelectorAll('.rightTabContent');
-                tabContents.forEach(content => content.classList.remove('active'));
-                
-                const tabId = button.dataset.tab;
-                document.getElementById(tabId).classList.add('active');
-                
-                this.currentTab = tabId;
-                this.renderRecordings();
-            });
-        });
+        // No need for tab switching anymore
+        this.renderRawRecordings();
+        this.renderAIRecordings();
     }
 
     loadRecordings(storageKey) {
@@ -135,7 +114,12 @@ class RecordingLibrary {
             };
             this.recordings[type].unshift(newRecording);
             this.saveRecordings(type);
-            this.renderRecordings();
+            
+            if (type === 'raw') {
+                this.renderRawRecordings();
+            } else {
+                this.renderAIRecordings();
+            }
         };
         reader.readAsDataURL(blob);
     }
@@ -143,19 +127,78 @@ class RecordingLibrary {
     deleteRecording(id, type) {
         this.recordings[type] = this.recordings[type].filter(rec => rec.id !== id);
         this.saveRecordings(type);
-        this.renderRecordings();
+        
+        if (type === 'raw') {
+            this.renderRawRecordings();
+        } else {
+            this.renderAIRecordings();
+        }
     }
 
-    renderRecordings() {
-        const isRawTab = this.currentTab === 'raw-recordings';
-        const type = isRawTab ? 'raw' : 'improved';
-        const targetList = isRawTab ? this.rawRecordingsList : this.aiImprovedList;
-        const recordings = this.recordings[type];
+    renderRawRecordings() {
+        this.rawRecordingsList.innerHTML = '';
+        const recordings = this.recordings.raw;
 
-        targetList.innerHTML = '';
+        if (recordings.length === 0) {
+            this.rawRecordingsList.innerHTML = `
+                <div class="empty-state">
+                    <p>No recordings yet</p>
+                    <small>Click the microphone to start recording</small>
+                </div>
+            `;
+            return;
+        }
 
-        if (recordings.length === 0 && type === 'improved') {
-            targetList.innerHTML = `
+        // Group recordings by date
+        const recordingsByDate = recordings.reduce((groups, rec) => {
+            const date = new Date(rec.timestamp).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            if (!groups[date]) {
+                groups[date] = [];
+            }
+            groups[date].push(rec);
+            return groups;
+        }, {});
+
+        // Render each date group
+        for (const date in recordingsByDate) {
+            const dateHeader = document.createElement('h3');
+            dateHeader.textContent = date;
+            this.rawRecordingsList.appendChild(dateHeader);
+
+            recordingsByDate[date].forEach(rec => {
+                const item = document.createElement('div');
+                item.className = 'recording-item';
+                item.dataset.id = rec.id;
+                item.dataset.type = 'raw';
+                item.innerHTML = `
+                    <div class="name">
+                      <span class="title">${rec.name}</span>
+                      <span class="duration">(${rec.duration})</span>
+                    </div>
+                    <div class="controls">
+                        <button class="play-btn" data-id="${rec.id}" data-type="raw">&#9658;</button>
+                        <button class="download-btn" data-id="${rec.id}" data-type="raw">&#x1F4BE;</button>
+                        <button class="improve-btn" data-id="${rec.id}" data-type="raw" title="Improve with AI">✨</button>
+                        <button class="delete-btn" data-id="${rec.id}" data-type="raw">&#x1F5D1;</button>
+                    </div>
+                `;
+                this.rawRecordingsList.appendChild(item);
+            });
+        }
+        
+        this.setupEventListeners();
+    }
+
+    renderAIRecordings() {
+        this.aiImprovedList.innerHTML = '';
+        const recordings = this.recordings.improved;
+
+        if (recordings.length === 0) {
+            this.aiImprovedList.innerHTML = `
                 <div class="empty-state">
                     <p>No AI improved recordings yet</p>
                     <small>Raw recordings can be improved using AI</small>
@@ -182,26 +225,25 @@ class RecordingLibrary {
         for (const date in recordingsByDate) {
             const dateHeader = document.createElement('h3');
             dateHeader.textContent = date;
-            targetList.appendChild(dateHeader);
+            this.aiImprovedList.appendChild(dateHeader);
 
             recordingsByDate[date].forEach(rec => {
                 const item = document.createElement('div');
                 item.className = 'recording-item';
                 item.dataset.id = rec.id;
-                item.dataset.type = type;
+                item.dataset.type = 'improved';
                 item.innerHTML = `
                     <div class="name">
                       <span class="title">${rec.name}</span>
                       <span class="duration">(${rec.duration})</span>
                     </div>
                     <div class="controls">
-                        <button class="play-btn" data-id="${rec.id}" data-type="${type}">&#9658;</button>
-                        <button class="download-btn" data-id="${rec.id}" data-type="${type}">&#x1F4BE;</button>
-                        ${type === 'raw' ? `<button class="improve-btn" data-id="${rec.id}" data-type="${type}" title="Improve with AI">✨</button>` : ''}
-                        <button class="delete-btn" data-id="${rec.id}" data-type="${type}">&#x1F5D1;</button>
+                        <button class="play-btn" data-id="${rec.id}" data-type="improved">&#9658;</button>
+                        <button class="download-btn" data-id="${rec.id}" data-type="improved">&#x1F4BE;</button>
+                        <button class="delete-btn" data-id="${rec.id}" data-type="improved">&#x1F5D1;</button>
                     </div>
                 `;
-                targetList.appendChild(item);
+                this.aiImprovedList.appendChild(item);
             });
         }
         
@@ -291,7 +333,7 @@ class RecordingLibrary {
             // };
             // this.recordings.improved.unshift(improvedRecording);
             // this.saveRecordings('improved');
-            // this.renderRecordings();
+            // this.renderAIRecordings();
         }
     }
 
@@ -317,7 +359,11 @@ class RecordingLibrary {
                 recording.name = newName;
                 this.saveRecordings(type);
             }
-            this.renderRecordings();
+            if (type === 'raw') {
+                this.renderRawRecordings();
+            } else {
+                this.renderAIRecordings();
+            }
         };
     
         input.addEventListener('blur', finishRename);
@@ -368,9 +414,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("rerecord").addEventListener("click", resetRecorder);
     document.getElementById("stop").disabled = true;
     
-    // No-op event listeners for new buttons
+    // Settings button event listener
     document.getElementById("settingsButton").addEventListener("click", () => alert("Settings button clicked!"));
-    document.getElementById("aiWriteButton").addEventListener("click", () => alert("Write with AI button clicked!"));
 });
 
 async function toggleRecording() {
@@ -453,6 +498,7 @@ async function startNewRecording() {
         document.getElementById("start").innerHTML = "&#x1F3A4;";
     }
 }
+
 function startRecordingTime() {
     clearInterval(recordingTimeInterval);
     recordingTimeInterval = setInterval(() => {

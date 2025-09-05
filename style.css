@@ -22,7 +22,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden;
+  overflow: hidden; /* Keep this */
   background-color: var(--bg-light);
   color: var(--text-light);
   transition: background-color 0.3s, color 0.3s;
@@ -126,7 +126,7 @@ input:checked + .slider:before {
   display: flex;
   flex: 1;
   overflow: hidden;
-  margin-bottom: 80px; /* accounts for larger footer */
+  margin-bottom: 60px; /* Reduced from 80px to match footer height */
 }
 
 #container {
@@ -136,7 +136,6 @@ input:checked + .slider:before {
   padding: 20px;
   overflow: auto;
   min-width: 0;
-  margin-bottom: 20px; /* accounts for footer spacing */
 }
 
 /* Right Panel */
@@ -250,7 +249,6 @@ body.dark-mode #buttonWrapper {
   transform: translateY(-1px);
 }
 
-/* --- Footer --- */
 #footer {
   padding: 16px 30px;
   background-color: #f0f0f0;
@@ -259,7 +257,8 @@ body.dark-mode #buttonWrapper {
   color: #333;
   position: fixed;
   bottom: 0;
-  width: 100%;
+  left: 0; /* Add this */
+  right: 0; /* Add this */
   display: flex;
   justify-content: flex-start;
   align-items: center;
@@ -267,7 +266,7 @@ body.dark-mode #buttonWrapper {
   transition: background-color 0.3s, border-color 0.3s, color 0.3s;
   z-index: 100;
   box-sizing: border-box;
-  min-height: 60px;
+  height: 60px; /* Set fixed height */
 }
 
 body.dark-mode #footer {
@@ -634,4 +633,171 @@ body.dark-mode .rename-input {
   background-color: var(--element-bg-dark);
   color: var(--text-dark);
   border-color: var(--primary-color);
+}
+
+/* Update container styles */
+#container {
+  display: flex;
+  flex-direction: column;
+  flex: 3;
+  padding: 20px;
+  overflow: auto;
+  min-width: 0;
+  margin-bottom: 20px;
+}
+
+/* Raw Recordings Section */
+#rawRecordingsSection {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: var(--element-bg-light);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+body.dark-mode #rawRecordingsSection {
+  background-color: var(--element-bg-dark);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#rawRecordingsSection h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--text-light);
+}
+
+body.dark-mode #rawRecordingsSection h2 {
+  color: var(--text-dark);
+}
+
+/* Right Panel Updates */
+#rightPanel {
+  width: 300px;
+  background-color: #ffffff;
+  border-left: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.dark-mode #rightPanel {
+  background-color: var(--element-bg-dark);
+  border-left-color: var(--border-dark);
+}
+
+.rightPanel-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
+  background-color: var(--bg-light);
+}
+
+body.dark-mode .rightPanel-header {
+  border-bottom-color: var(--border-dark);
+  background-color: var(--bg-dark);
+}
+
+.rightPanel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+body.dark-mode .rightPanel-header h3 {
+  color: var(--text-dark);
+}
+
+/* Remove tab styles since we don't need them anymore */
+.rightPanel-tabs,
+.rightTab {
+  display: none;
+}
+
+/* Recording controls wrapper update */
+#recording-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  background-color: var(--element-bg-light);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+body.dark-mode #recording-controls {
+  background-color: var(--element-bg-dark);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #appLayout {
+    flex-direction: column;
+    margin-bottom: 70px;
+  }
+
+  #rightPanel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border-light);
+    max-height: 300px;
+  }
+
+  body.dark-mode #rightPanel {
+    border-top-color: var(--border-dark);
+  }
+  
+  #rawRecordingsSection {
+    margin-top: 20px;
+    padding: 15px;
+  }
+
+  .rightPanel-header {
+    padding: 15px;
+  }
+  
+  .rightPanel-header h3 {
+    font-size: 16px;
+  }
+}
+
+/* Empty state for raw recordings */
+#rawRecordingsList .empty-state {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+  background-color: var(--bg-light);
+  border-radius: 8px;
+  border: 2px dashed var(--border-light);
+}
+
+body.dark-mode #rawRecordingsList .empty-state {
+  color: #999;
+  background-color: var(--bg-dark);
+  border-color: var(--border-dark);
+}
+/* Add scrollbar styling to make it less prominent or hide it */
+#container::-webkit-scrollbar {
+  width: 8px;
+}
+
+#container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+body.dark-mode #container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
