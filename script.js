@@ -97,13 +97,19 @@ class AudioPlayer {
         // Play/Pause button
         this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
         
-        // Seek bar
+        // Inside setupEventListeners()
         this.seekBar.addEventListener('input', (e) => {
             if (this.currentAudio && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
-                const time = (e.target.value / 100) * this.currentAudio.duration;
+                const percent = e.target.value;
+                const time = (percent / 100) * this.currentAudio.duration;
                 this.currentAudio.currentTime = time;
+
+                // Force UI update while dragging
+                this.progressFill.style.width = percent + '%';
+                this.currentTimeSpan.textContent = this.formatTime(time);
             }
         });
+
         
         // Close button
         this.closeBtn.addEventListener('click', () => this.stop());
@@ -136,6 +142,7 @@ class AudioPlayer {
         this.currentAudio = new Audio(recording.dataUrl);
         this.currentRecordingId = recording.id;
         
+        this.recordingDurationFallback = recording.durationSeconds;
         // Add playing class to current recording
         if (recordingElement) {
             recordingElement.classList.add('playing');
@@ -312,25 +319,30 @@ class AudioPlayer {
     }
     
     updateProgress() {
-        if (!this.currentAudio || !isFinite(this.currentAudio.duration) || this.currentAudio.duration === 0) return;
-        
-        const currentTime = this.currentAudio.currentTime;
-        const duration = this.currentAudio.duration;
-        
+        if (!this.currentAudio) return;
+
+        const currentTime = this.currentAudio.currentTime || 0;
+
+        // Use actual duration if available, otherwise fallback
+        let duration = (isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0)
+            ? this.currentAudio.duration
+            : (this.recordingDurationFallback || 1);
+
         const progress = (currentTime / duration) * 100;
-        
-        // Ensure progress is within bounds
         const safeProgress = Math.max(0, Math.min(100, progress));
-        
+
         this.seekBar.value = safeProgress;
         this.progressFill.style.width = safeProgress + '%';
+        this.progressFill.parentElement.style.setProperty('--progress-position', safeProgress + '%');
+
         this.currentTimeSpan.textContent = this.formatTime(currentTime);
-        
-        // Update duration if it changed
-        if (this.durationSpan.textContent === 'Loading...' && duration > 0) {
+
+        if (duration && this.durationSpan.textContent === 'Loading...') {
             this.durationSpan.textContent = this.formatTime(duration);
         }
     }
+
+
     
     formatTime(seconds) {
         if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
