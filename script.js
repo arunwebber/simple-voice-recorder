@@ -78,6 +78,7 @@ class AudioPlayer {
         this.currentAudio = null;
         this.currentRecordingId = null;
         this.isPlaying = false;
+        this.progressInterval = null; // For smooth progress updates
         
         // Player elements
         this.playerContainer = document.getElementById('audioPlayer');
@@ -98,7 +99,7 @@ class AudioPlayer {
         
         // Seek bar
         this.seekBar.addEventListener('input', (e) => {
-            if (this.currentAudio && isFinite(this.currentAudio.duration)) {
+            if (this.currentAudio && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
                 const time = (e.target.value / 100) * this.currentAudio.duration;
                 this.currentAudio.currentTime = time;
             }
@@ -109,11 +110,13 @@ class AudioPlayer {
         
         // Progress bar click
         this.progressFill.parentElement.addEventListener('click', (e) => {
-            if (this.currentAudio) {
+            if (this.currentAudio && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const percent = (e.clientX - rect.left) / rect.width;
-                this.currentAudio.currentTime = percent * this.currentAudio.duration;
+                const newTime = percent * this.currentAudio.duration;
+                this.currentAudio.currentTime = newTime;
                 this.seekBar.value = percent * 100;
+                this.updateProgress(); // Force update
             }
         });
     }
@@ -141,21 +144,27 @@ class AudioPlayer {
         // Set initial values to prevent NaN
         this.currentTimeSpan.textContent = '0:00';
         this.durationSpan.textContent = 'Loading...';
+        this.seekBar.value = 0;
+        this.progressFill.style.width = '0%';
         
         // Setup audio event listeners
         this.currentAudio.addEventListener('loadedmetadata', () => {
             // Now the duration is available
             const duration = this.currentAudio.duration;
-            if (isFinite(duration)) {
+            if (isFinite(duration) && duration > 0) {
                 this.durationSpan.textContent = this.formatTime(duration);
                 this.seekBar.max = 100;
+                this.seekBar.value = 0;
             } else {
                 this.durationSpan.textContent = '0:00';
             }
         });
         
-        this.currentAudio.addEventListener('timeupdate', () => {
-            this.updateProgress();
+        // Add durationchange event listener
+        this.currentAudio.addEventListener('durationchange', () => {
+            if (this.currentAudio && this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
+                this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
+            }
         });
         
         this.currentAudio.addEventListener('ended', () => {
@@ -169,6 +178,38 @@ class AudioPlayer {
             this.stop();
         });
         
+        // Handle audio canplay event
+        this.currentAudio.addEventListener('canplay', () => {
+            // Audio is ready to play
+            if (this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
+                this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
+            }
+        });
+        
+        // Handle loadeddata event as additional fallback
+        this.currentAudio.addEventListener('loadeddata', () => {
+            if (this.currentAudio && this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
+                this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
+            }
+        });
+        
+        // Fallback: Check duration after a delay
+        setTimeout(() => {
+            if (this.currentAudio && this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
+                this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
+            } else if (this.durationSpan.textContent === 'Loading...') {
+                // Use durationSeconds instead of duration
+                if (recording.durationSeconds && recording.durationSeconds > 0) {
+                    this.durationSpan.textContent = this.formatTime(recording.durationSeconds);
+                } else if (recording.duration) {
+                    // Fallback to formatted duration string
+                    this.durationSpan.textContent = recording.duration;
+                } else {
+                    this.durationSpan.textContent = '0:00';
+                }
+            }
+        }, 1000);
+        
         // Update UI
         this.nowPlayingTitle.textContent = `Now Playing: ${recording.name}`;
         this.playerContainer.style.display = 'block';
@@ -176,9 +217,23 @@ class AudioPlayer {
         this.isPlaying = true;
         
         // Start playing
-        this.currentAudio.play().catch(err => {
+        this.currentAudio.play().then(() => {
+            // Start smooth progress updates
+            this.startProgressInterval();
+        }).catch(err => {
             console.error('Playback error:', err);
-            this.stop();
+            // Try to reload and play again
+            this.currentAudio.load();
+            setTimeout(() => {
+                if (this.currentAudio) {
+                    this.currentAudio.play().then(() => {
+                        this.startProgressInterval();
+                    }).catch(e => {
+                        console.error('Second playback attempt failed:', e);
+                        this.stop();
+                    });
+                }
+            }, 100);
         });
     }
     
@@ -189,16 +244,53 @@ class AudioPlayer {
             this.currentAudio.pause();
             this.playPauseBtn.textContent = '▶️';
             this.isPlaying = false;
+            this.stopProgressInterval(); // Stop interval when paused
         } else {
-            this.currentAudio.play();
-            this.playPauseBtn.textContent = '⏸️';
-            this.isPlaying = true;
+            this.currentAudio.play()
+                .then(() => {
+                    this.playPauseBtn.textContent = '⏸️';
+                    this.isPlaying = true;
+                    this.startProgressInterval(); // Start interval when playing
+                })
+                .catch(err => {
+                    console.error('Play error:', err);
+                });
+        }
+    }
+    
+    startProgressInterval() {
+        this.stopProgressInterval(); // Clear any existing interval
+        
+        // Update progress 30 times per second for smooth animation
+        this.progressInterval = setInterval(() => {
+            if (this.currentAudio && !this.currentAudio.paused) {
+                this.updateProgress();
+            }
+        }, 33); // 33ms = ~30fps
+    }
+    
+    stopProgressInterval() {
+        if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+            this.progressInterval = null;
         }
     }
     
     stop() {
+        this.stopProgressInterval(); // Stop the progress interval
+        
         if (this.currentAudio) {
             this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+            
+            // Remove all event listeners
+            this.currentAudio.removeEventListener('ended', () => this.stop());
+            this.currentAudio.removeEventListener('loadedmetadata', () => {});
+            this.currentAudio.removeEventListener('error', () => {});
+            this.currentAudio.removeEventListener('canplay', () => {});
+            this.currentAudio.removeEventListener('durationchange', () => {});
+            this.currentAudio.removeEventListener('loadeddata', () => {});
+            
             this.currentAudio = null;
         }
         
@@ -209,29 +301,40 @@ class AudioPlayer {
         this.seekBar.value = 0;
         this.progressFill.style.width = '0%';
         this.currentTimeSpan.textContent = '0:00';
+        this.durationSpan.textContent = '0:00';
         
         // Remove playing class
         document.querySelectorAll('.recording-item').forEach(item => {
             item.classList.remove('playing');
         });
+        
+        this.currentRecordingId = null;
     }
     
     updateProgress() {
-        if (!this.currentAudio || !isFinite(this.currentAudio.duration)) return;
+        if (!this.currentAudio || !isFinite(this.currentAudio.duration) || this.currentAudio.duration === 0) return;
         
         const currentTime = this.currentAudio.currentTime;
         const duration = this.currentAudio.duration;
         
-        if (duration > 0) {
-            const progress = (currentTime / duration) * 100;
-            this.seekBar.value = progress;
-            this.progressFill.style.width = progress + '%';
-            this.currentTimeSpan.textContent = this.formatTime(currentTime);
+        const progress = (currentTime / duration) * 100;
+        
+        // Ensure progress is within bounds
+        const safeProgress = Math.max(0, Math.min(100, progress));
+        
+        this.seekBar.value = safeProgress;
+        this.progressFill.style.width = safeProgress + '%';
+        this.currentTimeSpan.textContent = this.formatTime(currentTime);
+        
+        // Update duration if it changed
+        if (this.durationSpan.textContent === 'Loading...' && duration > 0) {
+            this.durationSpan.textContent = this.formatTime(duration);
         }
     }
     
     formatTime(seconds) {
-        if (isNaN(seconds)) return '0:00';
+        if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
+        
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -274,6 +377,7 @@ class RecordingLibrary {
                 name: `Recording ${this.recordings[type].length + 1}`,
                 dataUrl: reader.result,
                 duration: this.formatTime(duration),
+                durationSeconds: duration, // Add this line to store raw seconds
                 timestamp: Date.now(),
                 type: type
             };
@@ -476,7 +580,14 @@ class RecordingLibrary {
         if (recording) {
             const link = document.createElement('a');
             link.href = recording.dataUrl;
-            link.download = `${recording.name}.wav`;
+            // Determine file extension based on MIME type
+            let extension = 'webm'; // default
+            if (recording.dataUrl.includes('audio/ogg')) {
+                extension = 'ogg';
+            } else if (recording.dataUrl.includes('audio/mp4')) {
+                extension = 'mp4';
+            }
+            link.download = `${recording.name}.${extension}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -622,8 +733,22 @@ async function startNewRecording() {
     try {
         console.log("Starting new recording...");
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        console.log("MediaRecorder created:", mediaRecorder);
+        
+        // Determine the best supported MIME type
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/webm')) {
+            mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+            mimeType = 'audio/ogg';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+        }
+        
+        // Store mimeType in a variable accessible to the onstop handler
+        const recordingMimeType = mimeType;
+        
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        console.log("MediaRecorder created with mimeType:", mimeType);
         
         audioChunks = [];
         fullWaveformData = [];
@@ -653,7 +778,8 @@ async function startNewRecording() {
 
         mediaRecorder.onstop = () => {
             console.log("MediaRecorder stopped");
-            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            // Use the recordingMimeType variable here
+            const audioBlob = new Blob(audioChunks, { type: recordingMimeType });
             const duration = (Date.now() - recordingStartTime) / 1000;
             library.addRecording(audioBlob, duration);
             resetRecorder();
@@ -678,12 +804,11 @@ async function startNewRecording() {
         document.getElementById("start").innerHTML = "&#x1F3A4;";
     }
 }
-
 function startRecordingTime() {
     clearInterval(recordingTimeInterval);
     recordingTimeInterval = setInterval(() => {
         elapsedRecordingTime = (Date.now() - recordingStartTime) / 1000;
-        document.getElementById("recording-length").textContent = `Recording length: ${elapsedRecordingTime.toFixed(3)} seconds`;
+        document.getElementById("recording-length").textContent = `Recording length: ${formatTimeDisplay(elapsedRecordingTime)}`;
     }, 100);
 }
 
@@ -692,14 +817,14 @@ function formatTimeDisplay(seconds) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    const millis = Math.floor((seconds % 1) * 1000);
+    const millis = Math.floor((seconds % 1) * 100); // Changed to show 2 decimal places
     
     if (hours > 0) {
         return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     } else if (minutes > 0) {
-        return `${minutes}:${secs.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0').substr(0, 2)}`;
+        return `${minutes}:${secs.toString().padStart(2, '0')}.${millis.toString().padStart(2, '0')}`;
     } else {
-        return `${secs}.${millis.toString().padStart(3, '0').substr(0, 2)} seconds`;
+        return `${secs}.${millis.toString().padStart(2, '0')} seconds`;
     }
 }
 

@@ -920,7 +920,7 @@ body.dark-mode #duration {
   border-radius: 3px;
   position: relative;
   cursor: pointer;
-  overflow: hidden;
+  overflow: visible;
 }
 
 body.dark-mode .progress-bar {
@@ -931,7 +931,7 @@ body.dark-mode .progress-bar {
   height: 100%;
   background-color: var(--primary-color);
   width: 0%;
-  transition: width 0.1s;
+  transition: none; /* Remove transition for real-time updates */
   pointer-events: none;
 }
 
@@ -947,6 +947,7 @@ body.dark-mode .progress-bar {
   background: transparent;
   cursor: pointer;
   margin: 0;
+  opacity: 0; /* Add this line - makes the track invisible but keeps functionality */
 }
 
 .seek-bar::-webkit-slider-thumb {
@@ -959,6 +960,8 @@ body.dark-mode .progress-bar {
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   transition: all 0.2s;
+  position: relative;
+  z-index: 2; /* Add this to ensure thumb is above progress bar */
 }
 
 .seek-bar::-webkit-slider-thumb:hover {
