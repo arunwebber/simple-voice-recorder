@@ -72,6 +72,171 @@ class DarkModeManager {
         }
     }
 }
+// Add this class before the RecordingLibrary class
+class AudioPlayer {
+    constructor() {
+        this.currentAudio = null;
+        this.currentRecordingId = null;
+        this.isPlaying = false;
+        
+        // Player elements
+        this.playerContainer = document.getElementById('audioPlayer');
+        this.playPauseBtn = document.getElementById('playPauseBtn');
+        this.seekBar = document.getElementById('seekBar');
+        this.currentTimeSpan = document.getElementById('currentTime');
+        this.durationSpan = document.getElementById('duration');
+        this.progressFill = document.getElementById('progressFill');
+        this.nowPlayingTitle = document.getElementById('nowPlayingTitle');
+        this.closeBtn = document.getElementById('closePlayer');
+        
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Play/Pause button
+        this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+        
+        // Seek bar
+        this.seekBar.addEventListener('input', (e) => {
+            if (this.currentAudio && isFinite(this.currentAudio.duration)) {
+                const time = (e.target.value / 100) * this.currentAudio.duration;
+                this.currentAudio.currentTime = time;
+            }
+        });
+        
+        // Close button
+        this.closeBtn.addEventListener('click', () => this.stop());
+        
+        // Progress bar click
+        this.progressFill.parentElement.addEventListener('click', (e) => {
+            if (this.currentAudio) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                this.currentAudio.currentTime = percent * this.currentAudio.duration;
+                this.seekBar.value = percent * 100;
+            }
+        });
+    }
+    
+    play(recording, recordingElement) {
+        // Stop current audio if playing
+        if (this.currentAudio) {
+            this.stop();
+        }
+        
+        // Remove playing class from all recordings
+        document.querySelectorAll('.recording-item').forEach(item => {
+            item.classList.remove('playing');
+        });
+        
+        // Create new audio element
+        this.currentAudio = new Audio(recording.dataUrl);
+        this.currentRecordingId = recording.id;
+        
+        // Add playing class to current recording
+        if (recordingElement) {
+            recordingElement.classList.add('playing');
+        }
+        
+        // Set initial values to prevent NaN
+        this.currentTimeSpan.textContent = '0:00';
+        this.durationSpan.textContent = 'Loading...';
+        
+        // Setup audio event listeners
+        this.currentAudio.addEventListener('loadedmetadata', () => {
+            // Now the duration is available
+            const duration = this.currentAudio.duration;
+            if (isFinite(duration)) {
+                this.durationSpan.textContent = this.formatTime(duration);
+                this.seekBar.max = 100;
+            } else {
+                this.durationSpan.textContent = '0:00';
+            }
+        });
+        
+        this.currentAudio.addEventListener('timeupdate', () => {
+            this.updateProgress();
+        });
+        
+        this.currentAudio.addEventListener('ended', () => {
+            this.stop();
+        });
+        
+        // Handle loading errors
+        this.currentAudio.addEventListener('error', (e) => {
+            console.error('Audio loading error:', e);
+            this.durationSpan.textContent = 'Error';
+            this.stop();
+        });
+        
+        // Update UI
+        this.nowPlayingTitle.textContent = `Now Playing: ${recording.name}`;
+        this.playerContainer.style.display = 'block';
+        this.playPauseBtn.textContent = '⏸️';
+        this.isPlaying = true;
+        
+        // Start playing
+        this.currentAudio.play().catch(err => {
+            console.error('Playback error:', err);
+            this.stop();
+        });
+    }
+    
+    togglePlayPause() {
+        if (!this.currentAudio) return;
+        
+        if (this.isPlaying) {
+            this.currentAudio.pause();
+            this.playPauseBtn.textContent = '▶️';
+            this.isPlaying = false;
+        } else {
+            this.currentAudio.play();
+            this.playPauseBtn.textContent = '⏸️';
+            this.isPlaying = true;
+        }
+    }
+    
+    stop() {
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+        }
+        
+        // Reset UI
+        this.playerContainer.style.display = 'none';
+        this.playPauseBtn.textContent = '▶️';
+        this.isPlaying = false;
+        this.seekBar.value = 0;
+        this.progressFill.style.width = '0%';
+        this.currentTimeSpan.textContent = '0:00';
+        
+        // Remove playing class
+        document.querySelectorAll('.recording-item').forEach(item => {
+            item.classList.remove('playing');
+        });
+    }
+    
+    updateProgress() {
+        if (!this.currentAudio || !isFinite(this.currentAudio.duration)) return;
+        
+        const currentTime = this.currentAudio.currentTime;
+        const duration = this.currentAudio.duration;
+        
+        if (duration > 0) {
+            const progress = (currentTime / duration) * 100;
+            this.seekBar.value = progress;
+            this.progressFill.style.width = progress + '%';
+            this.currentTimeSpan.textContent = this.formatTime(currentTime);
+        }
+    }
+    
+    formatTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+}
 
 class RecordingLibrary {
     constructor() {
@@ -300,10 +465,11 @@ class RecordingLibrary {
     playRecording(id, type) {
         const recording = this.recordings[type].find(rec => rec.id === id);
         if (recording) {
-            const audio = new Audio(recording.dataUrl);
-            audio.play();
+            const recordingElement = document.querySelector(`.recording-item[data-id="${id}"]`);
+            audioPlayer.play(recording, recordingElement);
         }
     }
+
 
     downloadRecording(id, type) {
         const recording = this.recordings[type].find(rec => rec.id === id);
@@ -399,9 +565,11 @@ let source;
 let animationId;
 let recordingTimeInterval;
 let library;
+let audioPlayer; 
 
 document.addEventListener("DOMContentLoaded", () => {
     new DarkModeManager("#darkModeToggle");
+    audioPlayer = new AudioPlayer();
     library = new RecordingLibrary();
 
     canvas = document.getElementById("waveform");
@@ -416,6 +584,18 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Settings button event listener
     document.getElementById("settingsButton").addEventListener("click", () => alert("Settings button clicked!"));
+    document.addEventListener('keydown', (e) => {
+        if (audioPlayer.currentAudio && e.target.tagName !== 'INPUT') {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                audioPlayer.togglePlayPause();
+            } else if (e.code === 'ArrowRight') {
+                audioPlayer.currentAudio.currentTime += 5;
+            } else if (e.code === 'ArrowLeft') {
+                audioPlayer.currentAudio.currentTime -= 5;
+            }
+        }
+    });
 });
 
 async function toggleRecording() {
@@ -505,6 +685,22 @@ function startRecordingTime() {
         elapsedRecordingTime = (Date.now() - recordingStartTime) / 1000;
         document.getElementById("recording-length").textContent = `Recording length: ${elapsedRecordingTime.toFixed(3)} seconds`;
     }, 100);
+}
+
+// Add this new function for proper time formatting
+function formatTimeDisplay(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const millis = Math.floor((seconds % 1) * 1000);
+    
+    if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else if (minutes > 0) {
+        return `${minutes}:${secs.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0').substr(0, 2)}`;
+    } else {
+        return `${secs}.${millis.toString().padStart(3, '0').substr(0, 2)} seconds`;
+    }
 }
 
 function stopRecording() {

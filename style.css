@@ -262,7 +262,7 @@ body.dark-mode #buttonWrapper {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 4px rgba(15, 11, 11, 0.05);
   transition: background-color 0.3s, border-color 0.3s, color 0.3s;
   z-index: 100;
   box-sizing: border-box;
@@ -800,4 +800,199 @@ body.dark-mode #container::-webkit-scrollbar-thumb {
 
 #container::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Audio Player Styles */
+#audioPlayer {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: var(--element-bg-light);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+body.dark-mode #audioPlayer {
+  background-color: var(--element-bg-dark);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+#nowPlayingTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 10px;
+}
+
+body.dark-mode #nowPlayingTitle {
+  color: var(--text-dark);
+}
+
+#closePlayer {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+#closePlayer:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+body.dark-mode #closePlayer {
+  color: #999;
+}
+
+body.dark-mode #closePlayer:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.player-btn {
+  background-color: var(--primary-color);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.player-btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.player-timeline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#currentTime, #duration {
+  font-size: 12px;
+  color: #666;
+  min-width: 35px;
+}
+
+body.dark-mode #currentTime,
+body.dark-mode #duration {
+  color: #999;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+body.dark-mode .progress-bar {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  width: 0%;
+  transition: width 0.1s;
+  pointer-events: none;
+}
+
+.seek-bar {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 100%;
+  height: 20px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+
+.seek-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+}
+
+.seek-bar::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.seek-bar::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Highlight playing recording */
+.recording-item.playing {
+  background-color: rgba(0, 123, 255, 0.1);
+  border-color: var(--primary-color);
+}
+
+body.dark-mode .recording-item.playing {
+  background-color: rgba(0, 123, 255, 0.2);
+}
+
+/* Animate play button in recording item */
+.recording-item.playing .play-btn {
+  color: var(--primary-color);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
