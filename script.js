@@ -98,31 +98,77 @@ class AudioPlayer {
         this.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
         
         // Inside setupEventListeners()
+// Inside setupEventListeners()
         this.seekBar.addEventListener('input', (e) => {
-            if (this.currentAudio && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
+            if (this.currentAudio) {
                 const percent = e.target.value;
-                const time = (percent / 100) * this.currentAudio.duration;
-                this.currentAudio.currentTime = time;
-
-                // Force UI update while dragging
-                this.progressFill.style.width = percent + '%';
-                this.currentTimeSpan.textContent = this.formatTime(time);
+                
+                // Use actual duration if available, otherwise use fallback
+                const duration = (this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) 
+                    ? this.currentAudio.duration 
+                    : this.recordingDurationFallback;
+                
+                if (duration > 0) {
+                    const time = (percent / 100) * duration;
+                    
+                    // Only set currentTime if the audio is loaded enough
+                    if (this.currentAudio.readyState >= 2) { // HAVE_CURRENT_DATA or better
+                        this.currentAudio.currentTime = time;
+                    } else {
+                        // Store the desired time and set it when ready
+                        this.pendingSeekTime = time;
+                        
+                        // Add a one-time listener to seek when ready
+                        this.currentAudio.addEventListener('canplay', () => {
+                            if (this.pendingSeekTime !== undefined) {
+                                this.currentAudio.currentTime = this.pendingSeekTime;
+                                this.pendingSeekTime = undefined;
+                            }
+                        }, { once: true });
+                    }
+                    
+                    // Update UI immediately regardless
+                    this.progressFill.style.width = percent + '%';
+                    this.currentTimeSpan.textContent = this.formatTime(time);
+                }
             }
         });
-
         
         // Close button
         this.closeBtn.addEventListener('click', () => this.stop());
         
         // Progress bar click
+        // Progress bar click
         this.progressFill.parentElement.addEventListener('click', (e) => {
-            if (this.currentAudio && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
+            if (this.currentAudio) {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const percent = (e.clientX - rect.left) / rect.width;
-                const newTime = percent * this.currentAudio.duration;
-                this.currentAudio.currentTime = newTime;
-                this.seekBar.value = percent * 100;
-                this.updateProgress(); // Force update
+                
+                // Use actual duration if available, otherwise use fallback
+                const duration = (this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) 
+                    ? this.currentAudio.duration 
+                    : this.recordingDurationFallback;
+                
+                if (duration > 0) {
+                    const newTime = percent * duration;
+                    
+                    if (this.currentAudio.readyState >= 2) {
+                        this.currentAudio.currentTime = newTime;
+                    } else {
+                        this.pendingSeekTime = newTime;
+                        this.currentAudio.addEventListener('canplay', () => {
+                            if (this.pendingSeekTime !== undefined) {
+                                this.currentAudio.currentTime = this.pendingSeekTime;
+                                this.pendingSeekTime = undefined;
+                            }
+                        }, { once: true });
+                    }
+                    
+                    // Update UI immediately
+                    this.seekBar.value = percent * 100;
+                    this.progressFill.style.width = (percent * 100) + '%';
+                    this.currentTimeSpan.textContent = this.formatTime(newTime);
+                }
             }
         });
     }
@@ -142,28 +188,32 @@ class AudioPlayer {
         this.currentAudio = new Audio(recording.dataUrl);
         this.currentRecordingId = recording.id;
         
-        this.recordingDurationFallback = recording.durationSeconds;
+        // Store the fallback duration immediately
+        this.recordingDurationFallback = recording.durationSeconds || 0;
+        
         // Add playing class to current recording
         if (recordingElement) {
             recordingElement.classList.add('playing');
         }
         
-        // Set initial values to prevent NaN
+        // Set initial values using the stored duration
         this.currentTimeSpan.textContent = '0:00';
-        this.durationSpan.textContent = 'Loading...';
+        this.durationSpan.textContent = this.formatTime(this.recordingDurationFallback);
         this.seekBar.value = 0;
+        this.seekBar.max = 100; // Set max immediately
         this.progressFill.style.width = '0%';
+        
+        // Enable seeking immediately
+        this.seekBar.disabled = false;
         
         // Setup audio event listeners
         this.currentAudio.addEventListener('loadedmetadata', () => {
-            // Now the duration is available
+            // Update with actual duration when available
             const duration = this.currentAudio.duration;
             if (isFinite(duration) && duration > 0) {
                 this.durationSpan.textContent = this.formatTime(duration);
-                this.seekBar.max = 100;
-                this.seekBar.value = 0;
-            } else {
-                this.durationSpan.textContent = '0:00';
+                // Update the fallback duration with the actual duration
+                this.recordingDurationFallback = duration;
             }
         });
         
@@ -171,6 +221,7 @@ class AudioPlayer {
         this.currentAudio.addEventListener('durationchange', () => {
             if (this.currentAudio && this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
                 this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
+                this.recordingDurationFallback = this.currentAudio.duration;
             }
         });
         
@@ -190,6 +241,13 @@ class AudioPlayer {
             // Audio is ready to play
             if (this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
                 this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
+                this.recordingDurationFallback = this.currentAudio.duration;
+            }
+            
+            // Apply pending seek if exists
+            if (this.pendingSeekTime !== undefined) {
+                this.currentAudio.currentTime = this.pendingSeekTime;
+                this.pendingSeekTime = undefined;
             }
         });
         
@@ -197,25 +255,11 @@ class AudioPlayer {
         this.currentAudio.addEventListener('loadeddata', () => {
             if (this.currentAudio && this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
                 this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
+                this.recordingDurationFallback = this.currentAudio.duration;
             }
         });
         
-        // Fallback: Check duration after a delay
-        setTimeout(() => {
-            if (this.currentAudio && this.currentAudio.duration && isFinite(this.currentAudio.duration) && this.currentAudio.duration > 0) {
-                this.durationSpan.textContent = this.formatTime(this.currentAudio.duration);
-            } else if (this.durationSpan.textContent === 'Loading...') {
-                // Use durationSeconds instead of duration
-                if (recording.durationSeconds && recording.durationSeconds > 0) {
-                    this.durationSpan.textContent = this.formatTime(recording.durationSeconds);
-                } else if (recording.duration) {
-                    // Fallback to formatted duration string
-                    this.durationSpan.textContent = recording.duration;
-                } else {
-                    this.durationSpan.textContent = '0:00';
-                }
-            }
-        }, 1000);
+        // No longer need the setTimeout fallback since we're using stored duration
         
         // Update UI
         this.nowPlayingTitle.textContent = `Now Playing: ${recording.name}`;
