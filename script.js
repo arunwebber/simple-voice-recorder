@@ -399,73 +399,54 @@ class AudioPlayer {
 
 class RecordingLibrary {
     constructor() {
-        this.rawRecordingsList = document.getElementById('rawRecordingsList');
-        this.aiImprovedList = document.getElementById('aiImprovedList');
-        this.recordings = {
-            raw: this.loadRecordings('rawRecordings'),
-            improved: this.loadRecordings('aiImprovedRecordings')
-        };
-        // No need for tab switching anymore
-        this.renderRawRecordings();
-        this.renderAIRecordings();
+        this.recordingsList = document.getElementById('recordingsList');
+        this.recordings = this.loadRecordings();
+        this.renderRecordings();
     }
 
-    loadRecordings(storageKey) {
+    loadRecordings() {
         try {
-            const savedRecordings = StorageManager.getFromLocalStorage(storageKey);
+            const savedRecordings = StorageManager.getFromLocalStorage('recordings');
             return savedRecordings ? JSON.parse(savedRecordings) : [];
         } catch (e) {
-            console.error(`Failed to parse ${storageKey} from localStorage:`, e);
+            console.error('Failed to parse recordings from localStorage:', e);
             return [];
         }
     }
 
-    saveRecordings(type = 'raw') {
-        const storageKey = type === 'raw' ? 'rawRecordings' : 'aiImprovedRecordings';
-        StorageManager.saveToLocalStorage(storageKey, JSON.stringify(this.recordings[type]));
+    saveRecordings() {
+        StorageManager.saveToLocalStorage('recordings', JSON.stringify(this.recordings));
     }
 
-    addRecording(blob, duration, type = 'raw') {
+    addRecording(blob, duration) {
         const reader = new FileReader();
         reader.onload = () => {
             const newRecording = {
                 id: `rec-${Date.now()}`,
-                name: `Recording ${this.recordings[type].length + 1}`,
+                name: `Recording ${this.recordings.length + 1}`,
                 dataUrl: reader.result,
                 duration: this.formatTime(duration),
-                durationSeconds: duration, // Add this line to store raw seconds
-                timestamp: Date.now(),
-                type: type
+                durationSeconds: duration,
+                timestamp: Date.now()
             };
-            this.recordings[type].unshift(newRecording);
-            this.saveRecordings(type);
-            
-            if (type === 'raw') {
-                this.renderRawRecordings();
-            } else {
-                this.renderAIRecordings();
-            }
+            this.recordings.unshift(newRecording);
+            this.saveRecordings();
+            this.renderRecordings();
         };
         reader.readAsDataURL(blob);
     }
 
-    deleteRecording(id, type) {
-        this.recordings[type] = this.recordings[type].filter(rec => rec.id !== id);
-        this.saveRecordings(type);
-        
-        if (type === 'raw') {
-            this.renderRawRecordings();
-        } else {
-            this.renderAIRecordings();
-        }
+    deleteRecording(id) {
+        this.recordings = this.recordings.filter(rec => rec.id !== id);
+        this.saveRecordings();
+        this.renderRecordings();
     }
 
-    renderRawRecordings() {
-        this.rawRecordingsList.innerHTML = '';
-        const recordings = this.recordings.raw;
+    renderRecordings() {
+        this.recordingsList.innerHTML = '';
 
-        if (recordings.length === 0) {
-            this.rawRecordingsList.innerHTML = `
+        if (this.recordings.length === 0) {
+            this.recordingsList.innerHTML = `
                 <div class="empty-state">
                     <p>No recordings yet</p>
                     <small>Click the microphone to start recording</small>
@@ -475,7 +456,7 @@ class RecordingLibrary {
         }
 
         // Group recordings by date
-        const recordingsByDate = recordings.reduce((groups, rec) => {
+        const recordingsByDate = this.recordings.reduce((groups, rec) => {
             const date = new Date(rec.timestamp).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -492,83 +473,24 @@ class RecordingLibrary {
         for (const date in recordingsByDate) {
             const dateHeader = document.createElement('h3');
             dateHeader.textContent = date;
-            this.rawRecordingsList.appendChild(dateHeader);
+            this.recordingsList.appendChild(dateHeader);
 
             recordingsByDate[date].forEach(rec => {
                 const item = document.createElement('div');
                 item.className = 'recording-item';
                 item.dataset.id = rec.id;
-                item.dataset.type = 'raw';
                 item.innerHTML = `
                     <div class="name">
                       <span class="title">${rec.name}</span>
                       <span class="duration">(${rec.duration})</span>
                     </div>
                     <div class="controls">
-                        <button class="play-btn" data-id="${rec.id}" data-type="raw">&#9658;</button>
-                        <button class="download-btn" data-id="${rec.id}" data-type="raw">&#x1F4BE;</button>
-                        <button class="improve-btn" data-id="${rec.id}" data-type="raw" title="Improve with AI">✨</button>
-                        <button class="delete-btn" data-id="${rec.id}" data-type="raw">&#x1F5D1;</button>
+                        <button class="play-btn" data-id="${rec.id}">&#9658;</button>
+                        <button class="download-btn" data-id="${rec.id}">&#x1F4BE;</button>
+                        <button class="delete-btn" data-id="${rec.id}">&#x1F5D1;</button>
                     </div>
                 `;
-                this.rawRecordingsList.appendChild(item);
-            });
-        }
-        
-        this.setupEventListeners();
-    }
-
-    renderAIRecordings() {
-        this.aiImprovedList.innerHTML = '';
-        const recordings = this.recordings.improved;
-
-        if (recordings.length === 0) {
-            this.aiImprovedList.innerHTML = `
-                <div class="empty-state">
-                    <p>No AI improved recordings yet</p>
-                    <small>Raw recordings can be improved using AI</small>
-                </div>
-            `;
-            return;
-        }
-
-        // Group recordings by date
-        const recordingsByDate = recordings.reduce((groups, rec) => {
-            const date = new Date(rec.timestamp).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            if (!groups[date]) {
-                groups[date] = [];
-            }
-            groups[date].push(rec);
-            return groups;
-        }, {});
-
-        // Render each date group
-        for (const date in recordingsByDate) {
-            const dateHeader = document.createElement('h3');
-            dateHeader.textContent = date;
-            this.aiImprovedList.appendChild(dateHeader);
-
-            recordingsByDate[date].forEach(rec => {
-                const item = document.createElement('div');
-                item.className = 'recording-item';
-                item.dataset.id = rec.id;
-                item.dataset.type = 'improved';
-                item.innerHTML = `
-                    <div class="name">
-                      <span class="title">${rec.name}</span>
-                      <span class="duration">(${rec.duration})</span>
-                    </div>
-                    <div class="controls">
-                        <button class="play-btn" data-id="${rec.id}" data-type="improved">&#9658;</button>
-                        <button class="download-btn" data-id="${rec.id}" data-type="improved">&#x1F4BE;</button>
-                        <button class="delete-btn" data-id="${rec.id}" data-type="improved">&#x1F5D1;</button>
-                    </div>
-                `;
-                this.aiImprovedList.appendChild(item);
+                this.recordingsList.appendChild(item);
             });
         }
         
@@ -580,8 +502,7 @@ class RecordingLibrary {
         document.querySelectorAll('.play-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const id = e.target.dataset.id;
-                const type = e.target.dataset.type;
-                this.playRecording(id, type);
+                this.playRecording(id);
             });
         });
 
@@ -589,8 +510,7 @@ class RecordingLibrary {
         document.querySelectorAll('.download-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const id = e.target.dataset.id;
-                const type = e.target.dataset.type;
-                this.downloadRecording(id, type);
+                this.downloadRecording(id);
             });
         });
 
@@ -598,41 +518,28 @@ class RecordingLibrary {
         document.querySelectorAll('.delete-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const id = e.target.dataset.id;
-                const type = e.target.dataset.type;
-                this.deleteRecording(id, type);
-            });
-        });
-
-        // Improve buttons (only on raw recordings)
-        document.querySelectorAll('.improve-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const id = e.target.dataset.id;
-                const type = e.target.dataset.type;
-                this.improveRecording(id, type);
+                this.deleteRecording(id);
             });
         });
 
         // Double-click to rename
         document.querySelectorAll('.recording-item .title').forEach(titleSpan => {
             titleSpan.addEventListener('dblclick', (e) => {
-                const recordingItem = e.target.closest('.recording-item');
-                const type = recordingItem.dataset.type;
-                this.startRename(e.target, type);
+                this.startRename(e.target);
             });
         });
     }
 
-    playRecording(id, type) {
-        const recording = this.recordings[type].find(rec => rec.id === id);
+    playRecording(id) {
+        const recording = this.recordings.find(rec => rec.id === id);
         if (recording) {
             const recordingElement = document.querySelector(`.recording-item[data-id="${id}"]`);
             audioPlayer.play(recording, recordingElement);
         }
     }
 
-
-    downloadRecording(id, type) {
-        const recording = this.recordings[type].find(rec => rec.id === id);
+    downloadRecording(id) {
+        const recording = this.recordings.find(rec => rec.id === id);
         if (recording) {
             const link = document.createElement('a');
             link.href = recording.dataUrl;
@@ -650,29 +557,9 @@ class RecordingLibrary {
         }
     }
 
-    improveRecording(id, type) {
-        const recording = this.recordings[type].find(rec => rec.id === id);
-        if (recording) {
-            // For now, just show an alert. In the future, this will process the audio with AI
-            alert(`AI improvement feature coming soon for "${recording.name}"!`);
-            
-            // Example of how you might copy to improved recordings later:
-            // const improvedRecording = {
-            //     ...recording,
-            //     id: `imp-${Date.now()}`,
-            //     name: `${recording.name} (AI Enhanced)`,
-            //     originalId: recording.id,
-            //     improvedAt: Date.now()
-            // };
-            // this.recordings.improved.unshift(improvedRecording);
-            // this.saveRecordings('improved');
-            // this.renderAIRecordings();
-        }
-    }
-
-    startRename(titleElement, type) {
+    startRename(titleElement) {
         const id = titleElement.closest('.recording-item').dataset.id;
-        const recording = this.recordings[type].find(rec => rec.id === id);
+        const recording = this.recordings.find(rec => rec.id === id);
         const currentName = recording.name;
         
         const input = document.createElement('input');
@@ -690,13 +577,9 @@ class RecordingLibrary {
             const newName = input.value.trim();
             if (newName && newName !== currentName) {
                 recording.name = newName;
-                this.saveRecordings(type);
+                this.saveRecordings();
             }
-            if (type === 'raw') {
-                this.renderRawRecordings();
-            } else {
-                this.renderAIRecordings();
-            }
+            this.renderRecordings();
         };
     
         input.addEventListener('blur', finishRename);
@@ -749,8 +632,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("rerecord").addEventListener("click", resetRecorder);
     document.getElementById("stop").disabled = true;
     
-    // Settings button event listener
-    document.getElementById("settingsButton").addEventListener("click", () => alert("Settings button clicked!"));
+    // Remove the settings button listener since we're removing it
+    // document.getElementById("settingsButton").addEventListener("click", () => alert("Settings button clicked!"));
+    
     document.addEventListener('keydown', (e) => {
         if (audioPlayer.currentAudio && e.target.tagName !== 'INPUT') {
             if (e.code === 'Space') {
@@ -834,10 +718,9 @@ async function startNewRecording() {
 
         mediaRecorder.onstop = () => {
             console.log("MediaRecorder stopped");
-            // Use the recordingMimeType variable here
             const audioBlob = new Blob(audioChunks, { type: recordingMimeType });
             const duration = (Date.now() - recordingStartTime) / 1000;
-            library.addRecording(audioBlob, duration);
+            library.addRecording(audioBlob, duration); // Removed the 'type' parameter
             resetRecorder();
         };
 
